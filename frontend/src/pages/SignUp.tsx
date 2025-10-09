@@ -1,13 +1,13 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Nav from "../components/Nav";
 import { toast } from "react-hot-toast";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const SignUp = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -18,12 +18,12 @@ const SignUp = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/users", {
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // ✅ send cookies automatically
         body: JSON.stringify(form),
       });
 
@@ -31,18 +31,14 @@ const SignUp = () => {
 
       if (!res.ok) {
         toast.error(data.error || "Failed to create user");
-        setLoading(false);
         return;
       }
 
       toast.success("Account created successfully!");
-
-      // Redirect to home or sign-in after successful signup
-      setTimeout(() => {
-        navigate("/signin");
-      }, 1500);
+      navigate("/"); // redirect straight to home/dashboard
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message || "Something went wrong");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -51,12 +47,11 @@ const SignUp = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex flex-col items-center justify-center flex-1 bg-gradient-to-b from-purple-50 via-blue-50 to white text-center p-6">
+      <main className="flex flex-col items-center justify-center flex-1 bg-gradient-to-b from-purple-50 via-blue-50 to-white text-center p-6">
         <h2 className="text-4xl font-bold mb-4">Sign Up</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
         <form
-          onSubmit={handleSubmit}
           className="flex flex-col space-y-4 w-full max-w-md"
+          onSubmit={handleSubmit}
         >
           <input
             type="text"
