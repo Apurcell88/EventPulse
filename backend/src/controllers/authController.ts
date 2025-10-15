@@ -125,3 +125,21 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     res.status(500).json({ user: null });
   }
 };
+
+// POST /api/auth/signout
+export const signOutUser = (req: Request, res: Response) => {
+  try {
+    // Clear the cookie by setting it to an empty value and immediate expiration
+    res.cookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      expires: new Date(0), // set to past date
+    });
+
+    res.status(200).json({ message: "Signed out successfully" });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};

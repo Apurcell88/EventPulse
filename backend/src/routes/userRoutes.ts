@@ -1,9 +1,9 @@
-// import { Router } from "express";
-// import { createUser, getUsers } from "../controllers/userController";
+import { Router } from "express";
+import { authenticate } from "../authMiddleware";
+import { getDashboard } from "../controllers/userController";
 
-// const router = Router();
+const router = Router();
 
-// router.post("/", createUser); // POST /api/users
-// router.get("/", getUsers); // GET /api/users
+router.get("/dashboard", authenticate, getDashboard);
 
-// export default router;
+export default router;

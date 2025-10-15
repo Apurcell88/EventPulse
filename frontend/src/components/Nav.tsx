@@ -14,7 +14,7 @@ const Nav = ({ user, setUser }: NavProps) => {
   const handleSignOut = async () => {
     await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signout`, {
       method: "POST",
-      credentials: "include",
+      credentials: "include", // send the cookie
     });
     setUser(null);
     navigate("/");
