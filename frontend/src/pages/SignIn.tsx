@@ -5,7 +5,13 @@ import { toast } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 const API_URL = import.meta.env.VITE_API_URL;
 
-const SignIn = () => {
+interface SignInProps {
+  setUser: React.Dispatch<
+    React.SetStateAction<{ id: number; name: string; email: string } | null>
+  >;
+}
+
+const SignIn = ({ setUser }: SignInProps) => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +41,7 @@ const SignIn = () => {
         return;
       }
 
+      setUser(data.user);
       toast.success("Signed in successfully!");
       navigate("/");
     } catch (err: any) {

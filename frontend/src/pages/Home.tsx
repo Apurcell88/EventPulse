@@ -1,10 +1,8 @@
 import React from "react";
-import Nav from "../components/Nav";
 
 const Home = () => {
   return (
     <div className="flex flex-col min-h-screen">
-      <Nav />
       <main className="flex flex-col items-center justify-center flex-1 bg-gradient-to-b from-purple-50 via-blue-50 to-white text-center p-6">
         <h2 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
           Welcome to EventPulse

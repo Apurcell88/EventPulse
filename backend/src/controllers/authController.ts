@@ -90,18 +90,38 @@ export const signInUser = async (req: Request, res: Response) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // only HTTPS in production
-      sameSite: "strict",
-      maxAge: 3600000, // 1 hour
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // use "lax" in dev
+      maxAge: 24 * 60 * 60 * 1000, // 1 hour
     });
 
     // Optional: generate a JWT here for future protected routes
     res.status(200).json({
       message: "Sign-in successful",
       user: { id: user.id, name: user.name, email: user.email },
-      token,
+      // token,
     });
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.json({ user: null });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!user) return res.json({ user: null });
+
+    res.json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ user: null });
   }
 };

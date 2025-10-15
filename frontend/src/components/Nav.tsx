@@ -1,26 +1,52 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-import React from "react";
+import { useState } from "react";
+import { User } from "../App";
 
-const Nav = () => {
+interface NavProps {
+  user: User;
+  setUser: React.Dispatch<React.SetStateAction<User>>;
+}
+
+const Nav = ({ user, setUser }: NavProps) => {
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signout`, {
+      method: "POST",
+      credentials: "include",
+    });
+    setUser(null);
+    navigate("/");
+  };
+
   return (
     <nav className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
-      <h1 className="text-2xl font-extrabold tracking-wide drop-shadow-md">
+      <Link to="/" className="font-bold text-xl">
         EventPulse
-      </h1>
+      </Link>
       <div className="space-x-4">
-        <Link
-          to="/signup"
-          className="px-4 py-2 rounded-lg bg-white text-purple-600 font-semibold hover:bg-purple-100 transition"
-        >
-          Sign Up
-        </Link>
-        <Link
-          to="/signin"
-          className="px-4 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-100 transition"
-        >
-          Sign In
-        </Link>
+        {!user && (
+          <>
+            <Link to="/signin" className="hover:underline">
+              Sign In
+            </Link>
+            <Link to="/signup" className="hover:underline">
+              Sign Up
+            </Link>
+          </>
+        )}
+        {user && (
+          <>
+            <span>Hello, {user.name}</span>
+            <button
+              onClick={handleSignOut}
+              className="text-red-600 hover:underline"
+            >
+              Sign Out
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );
