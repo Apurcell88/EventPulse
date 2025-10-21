@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 // import userRoutes from "./src/routes/userRoutes";
 import authRoutes from "./src/routes/authRoutes";
+import userRoutes from "./src/routes/userRoutes";
 
 dotenv.config();
 
@@ -20,7 +21,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // User routes
-// app.use("/api/users", userRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/api", (req, res) => {
   res.json({ message: "Backend is running!" });

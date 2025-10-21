@@ -43,7 +43,7 @@ const SignIn = ({ setUser }: SignInProps) => {
 
       setUser(data.user);
       toast.success("Signed in successfully!");
-      navigate("/");
+      navigate("/dashboard");
     } catch (err: any) {
       toast.error("Something went wrong. Please try again");
     } finally {

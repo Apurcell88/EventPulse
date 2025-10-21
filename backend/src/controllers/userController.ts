@@ -33,7 +33,7 @@ export const getDashboard = async (req: Request, res: Response) => {
       myRsvps,
       otherEvents,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch dashboard data" });
   }
