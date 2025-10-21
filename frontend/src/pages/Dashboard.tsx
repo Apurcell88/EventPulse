@@ -9,7 +9,7 @@ interface Event {
   description?: string;
   location: string;
   date: string;
-  creater?: { id: number; name: string; email: string };
+  creator?: { id: number; name: string; email: string };
 }
 
 interface Rsvp {
@@ -52,6 +52,32 @@ const Dashboard = () => {
 
     fetchDashboard();
   }, []);
+
+  const handleRsvp = async (eventId: number, status: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/rsvps`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ eventId, status }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to RSVP");
+        return;
+      }
+
+      toast.success(`You marked this event as ${status}`);
+
+      // ✅ Instead of patching state manually, just refresh the dashboard
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    }
+  };
 
   if (loading) return <p className="p-6">Loading dashboard...</p>;
 
@@ -124,9 +150,23 @@ const Dashboard = () => {
                 <h3 className="font-semibold text-lg">{event.title}</h3>
                 <p className="text-gray-600">{event.description}</p>
                 <p className="text-sm text-gray-500">
-                  Created by: {event.creater?.name} | 📍 {event.location} | 🗓{" "}
+                  Created by: {event.creator?.name} | 📍 {event.location} | 🗓{" "}
                   {new Date(event.date).toLocaleDateString()}
                 </p>
+                <div className="mt-3 space-x-2">
+                  <button
+                    onClick={() => handleRsvp(event.id, "attending")}
+                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                  >
+                    Attend
+                  </button>
+                  <button
+                    onClick={() => handleRsvp(event.id, "declined")}
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Decline
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

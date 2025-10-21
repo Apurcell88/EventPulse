@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./src/routes/authRoutes";
 import userRoutes from "./src/routes/userRoutes";
 import eventRoutes from "./src/routes/eventRoutes";
+import rsvpRoutes from "./src/routes/rsvpRoutes";
 
 dotenv.config();
 
@@ -33,5 +34,8 @@ app.use("/api/auth", authRoutes);
 
 // Event routes
 app.use("/api/events", eventRoutes);
+
+// RSVP routes
+app.use("/api/rsvps", rsvpRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
