@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Nav from "./components/Nav";
 import Dashboard from "./pages/Dashboard";
+import CreateEvent from "./pages/CreateEvent";
 
 export type User = { id: number; name: string; email: string } | null;
 
@@ -40,6 +41,7 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<SignIn setUser={setUser} />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/create-event" element={<CreateEvent />} />
       </Routes>
     </BrowserRouter>
   );

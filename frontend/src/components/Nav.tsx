@@ -39,6 +39,9 @@ const Nav = ({ user, setUser }: NavProps) => {
         {user && (
           <>
             <span>Hello, {user.name}</span>
+            <Link to="/create-event" className="hover:underline">
+              + Create Event
+            </Link>
             <button
               onClick={handleSignOut}
               className="text-red-600 hover:underline"
