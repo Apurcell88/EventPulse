@@ -28,28 +28,28 @@ const Dashboard = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/users/dashboard`, {
-          credentials: "include",
-        });
-        const json = await res.json();
+  const fetchDashboard = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/users/dashboard`, {
+        credentials: "include",
+      });
+      const json = await res.json();
 
-        if (!res.ok) {
-          toast.error(json.error || "Failed to load dashboard");
-          return;
-        }
-
-        setData(json);
-      } catch (err) {
-        console.error(err);
-        toast.error("Something went wrong loading the dashboard");
-      } finally {
-        setLoading(false);
+      if (!res.ok) {
+        toast.error(json.error || "Failed to load dashboard");
+        return;
       }
-    };
 
+      setData(json);
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong loading the dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboard();
   }, []);
 
@@ -72,7 +72,7 @@ const Dashboard = () => {
       toast.success(`You marked this event as ${status}`);
 
       // ✅ Instead of patching state manually, just refresh the dashboard
-      window.location.reload();
+      fetchDashboard();
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong");
