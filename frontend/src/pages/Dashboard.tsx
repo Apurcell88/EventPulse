@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Navigate, useNavigate } from "react-router-dom";
+import Modal from "../components/Modal";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -29,18 +30,10 @@ interface DashboardData {
 const Dashboard = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openAttendees, setOpenAttendees] = useState<Set<number>>(new Set());
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const navigate = useNavigate();
-
-  const toggleAttendees = (id: number) => {
-    setOpenAttendees((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const fetchDashboard = async () => {
     try {
@@ -149,22 +142,15 @@ const Dashboard = () => {
                     📍 {event.location} | 🗓 {formatDateTime(event.date)} | 👥{" "}
                     <button
                       type="button"
-                      onClick={() => toggleAttendees(event.id)}
+                      onClick={() => {
+                        setSelectedEvent(event);
+                        setShowModal(true);
+                      }}
                       className="underline hover:no-underline"
                     >
                       {attendingCount} going
                     </button>
                   </p>
-
-                  {openAttendees.has(event.id) && attendingCount > 0 && (
-                    <ul className="mt-2 text-sm text-gray-700 list-disc pl-6">
-                      {(event.rsvps ?? [])
-                        .filter((r) => r.status === "attending")
-                        .map((r) => (
-                          <li key={r.id}>{r.user?.name ?? "Unknown user"}</li>
-                        ))}
-                    </ul>
-                  )}
 
                   <div className="mt-3 space-x-2">
                     <button
@@ -239,22 +225,15 @@ const Dashboard = () => {
                     {formatDateTime(event.date)} | 👥{" "}
                     <button
                       type="button"
-                      onClick={() => toggleAttendees(event.id)}
+                      onClick={() => {
+                        setSelectedEvent(event);
+                        setShowModal(true);
+                      }}
                       className="underline hover:no-underline"
                     >
                       {attendingCount} going
                     </button>
                   </p>
-
-                  {openAttendees.has(event.id) && attendingCount > 0 && (
-                    <ul className="mt-2 text-sm text-gray-700 list-disc pl-6">
-                      {(event.rsvps ?? [])
-                        .filter((r) => r.status === "attending")
-                        .map((r) => (
-                          <li key={r.id}>{r.user?.name ?? "Unknown user"}</li>
-                        ))}
-                    </ul>
-                  )}
 
                   <div className="mt-3 space-x-2">
                     <button
@@ -278,6 +257,26 @@ const Dashboard = () => {
           <p className="text-gray-600">No events from other users yet.</p>
         )}
       </section>
+
+      {/* Attendee Modal */}
+      {showModal && selectedEvent && (
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={`Attendees for ${selectedEvent.title}`}
+        >
+          {(selectedEvent.rsvps ?? [])
+            .filter((r) => r.status === "attending")
+            .map((r) => (
+              <p key={r.id} className="py-1 border-b last:border-none">
+                {r.user?.name ?? "Unknown user"}
+              </p>
+            ))}
+
+          {(selectedEvent.rsvps ?? []).filter((r) => r.status === "attending")
+            .length === 0 && <p className="text-gray-600">No attendees yet.</p>}
+        </Modal>
+      )}
     </div>
   );
 };
