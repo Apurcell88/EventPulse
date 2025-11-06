@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { Navigate, useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -27,6 +28,8 @@ interface DashboardData {
 const Dashboard = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   const fetchDashboard = async () => {
     try {
@@ -71,8 +74,31 @@ const Dashboard = () => {
 
       toast.success(`You marked this event as ${status}`);
 
-      // ✅ Instead of patching state manually, just refresh the dashboard
       fetchDashboard();
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    }
+  };
+
+  const handleDelete = async (eventId: number) => {
+    if (!confirm("Are you sure you want to delete this event?")) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/events/${eventId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to delete event");
+        return;
+      }
+
+      toast.success("Event deleted!");
+      fetchDashboard(); // refresh dashboard
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong");
@@ -101,11 +127,25 @@ const Dashboard = () => {
                   📍 {event.location} | 🗓{" "}
                   {new Date(event.date).toLocaleDateString()}
                 </p>
+                <div className="mt-3 space-x-2">
+                  <button
+                    className="px-3 py-1 bg-yellow-500 text-white rounded hover:b-yellow-600"
+                    onClick={() => navigate(`/edit-event/${event.id}`)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    onClick={() => handleDelete(event.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="tet-gray-600">You haven't created any events yet.</p>
+          <p className="text-gray-600">You haven't created any events yet.</p>
         )}
       </section>
 

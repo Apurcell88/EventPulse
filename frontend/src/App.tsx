@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import Nav from "./components/Nav";
 import Dashboard from "./pages/Dashboard";
 import CreateEvent from "./pages/CreateEvent";
+import EditEvent from "./pages/EditEvent";
 
 export type User = { id: number; name: string; email: string } | null;
 
@@ -42,6 +43,7 @@ function App() {
         <Route path="/signin" element={<SignIn setUser={setUser} />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/create-event" element={<CreateEvent />} />
+        <Route path="/edit-event/:id" element={<EditEvent />} />
       </Routes>
     </BrowserRouter>
   );

@@ -23,8 +23,8 @@ export const authenticate = (
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "default_secret"
-    );
-    req.user = decoded; // attach user info to request
+    ) as { id: number; email: string };
+    req.user = { id: decoded.id, email: decoded.email }; // normalize to 'id'
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid token" });

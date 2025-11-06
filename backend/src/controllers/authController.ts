@@ -24,7 +24,7 @@ export const createUser = async (req: Request, res: Response) => {
     });
 
     // Generate JWT
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
       expiresIn: "1h",
     });
 
@@ -81,7 +81,7 @@ export const signInUser = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET || "default_secret",
       { expiresIn: "1h" }
     );
@@ -113,7 +113,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
+      where: { id: req.user.id },
       select: { id: true, name: true, email: true },
     });
 

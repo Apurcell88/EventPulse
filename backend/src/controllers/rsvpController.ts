@@ -15,13 +15,13 @@ export const rsvpEvent = async (req: Request, res: Response) => {
     const rsvp = await prisma.rSVP.upsert({
       where: {
         userId_eventId: {
-          userId: req.user.userId,
+          userId: req.user.id,
           eventId: Number(eventId),
         },
       },
       update: { status },
       create: {
-        userId: req.user.userId,
+        userId: req.user.id,
         eventId: Number(eventId),
         status,
       },

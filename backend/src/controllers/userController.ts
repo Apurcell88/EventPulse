@@ -5,7 +5,7 @@ export const getDashboard = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: "Not authenticated" });
 
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Events created by the user
     const myEvents = await prisma.event.findMany({
