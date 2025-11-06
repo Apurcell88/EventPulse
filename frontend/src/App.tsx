@@ -10,11 +10,14 @@ import Nav from "./components/Nav";
 import Dashboard from "./pages/Dashboard";
 import CreateEvent from "./pages/CreateEvent";
 import EditEvent from "./pages/EditEvent";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AuthRedirect from "./components/AuthRedirect";
 
 export type User = { id: number; name: string; email: string } | null;
 
 function App() {
   const [user, setUser] = useState<User>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -26,24 +29,76 @@ function App() {
         if (data.user) setUser(data.user);
       } catch (err) {
         console.error(err);
+        setUser(null);
+      } finally {
+        setLoadingUser(false); // finished checking
       }
     };
 
     fetchUser();
   }, []);
 
+  if (loadingUser) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
       <Nav user={user} setUser={setUser} />
       <Routes>
-        <Route path="/" element={<Home />} />
-        {/* Future routes */}
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/signin" element={<SignIn setUser={setUser} />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/create-event" element={<CreateEvent />} />
-        <Route path="/edit-event/:id" element={<EditEvent />} />
+        <Route
+          path="/"
+          element={
+            <AuthRedirect user={user}>
+              <Home />
+            </AuthRedirect>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <AuthRedirect user={user}>
+              <SignUp />
+            </AuthRedirect>
+          }
+        />
+        <Route
+          path="/signin"
+          element={
+            <AuthRedirect user={user}>
+              <SignIn setUser={setUser} />
+            </AuthRedirect>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute user={user}>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create-event"
+          element={
+            <ProtectedRoute user={user}>
+              <CreateEvent />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit-event/:id"
+          element={
+            <ProtectedRoute user={user}>
+              <EditEvent />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

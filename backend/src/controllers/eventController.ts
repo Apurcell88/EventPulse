@@ -75,7 +75,7 @@ export const updateEvent = async (req: Request, res: Response) => {
     const event = await prisma.event.findUnique({ where: { id: Number(id) } });
     if (!event) return res.status(404).json({ error: "Event not found" });
 
-    if (event.creatorId !== req.user.userId) {
+    if (event.creatorId !== req.user.id) {
       return res.status(403).json({ error: "Not authorized" });
     }
 

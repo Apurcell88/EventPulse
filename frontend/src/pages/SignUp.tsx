@@ -46,7 +46,6 @@ const SignUp = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Nav />
       <main className="flex flex-col items-center justify-center flex-1 bg-gradient-to-b from-purple-50 via-blue-50 to-white text-center p-6">
         <h2 className="text-4xl font-bold mb-4">Sign Up</h2>
         <form
