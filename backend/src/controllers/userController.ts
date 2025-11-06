@@ -10,30 +10,34 @@ export const getDashboard = async (req: Request, res: Response) => {
     // Events created by the user
     const myEvents = await prisma.event.findMany({
       where: { creatorId: userId },
-      include: { rsvps: true },
+      include: {
+        rsvps: {
+          include: { user: { select: { id: true, name: true } } }, // ⬅️ add this
+        },
+      },
       orderBy: { date: "asc" },
     });
 
     // Events the user RSVP'd to
     const myRsvps = await prisma.rSVP.findMany({
       where: { userId },
-      include: { event: true },
+      include: { event: { include: { creator: true } } },
       orderBy: { createdAt: "desc" },
     });
 
     // Events created by other users (exclude those already RSVP'd to)
     const otherEvents = await prisma.event.findMany({
       where: {
-        NOT: {
-          creatorId: userId,
-        },
+        creatorId: { not: userId },
+        rsvps: { none: { userId } },
+      },
+      include: {
+        creator: true,
         rsvps: {
-          none: {
-            userId: userId, // exclude if the current user RSVP'd
-          },
+          include: { user: { select: { id: true, name: true } } }, // ⬅️ add this
         },
       },
-      include: { creator: true, rsvps: true },
+      orderBy: { date: "asc" },
     });
 
     res.json({

@@ -11,6 +11,7 @@ interface Event {
   location: string;
   date: string;
   creator?: { id: number; name: string; email: string };
+  rsvps?: { id: number; status: string; user?: { id: number; name: string } }[];
 }
 
 interface Rsvp {
@@ -28,8 +29,18 @@ interface DashboardData {
 const Dashboard = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openAttendees, setOpenAttendees] = useState<Set<number>>(new Set());
 
   const navigate = useNavigate();
+
+  const toggleAttendees = (id: number) => {
+    setOpenAttendees((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const fetchDashboard = async () => {
     try {
@@ -105,6 +116,12 @@ const Dashboard = () => {
     }
   };
 
+  const formatDateTime = (iso: string) =>
+    new Date(iso).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
   if (loading) return <p className="p-6">Loading dashboard...</p>;
 
   if (!data) return <p className="p-6">No dashboard data available.</p>;
@@ -116,33 +133,56 @@ const Dashboard = () => {
         <h2 className="text-2xl font-bold mb-4 text-indigo-600">My Events</h2>
         {data.myEvents.length > 0 ? (
           <ul className="space-y-3">
-            {data.myEvents.map((event) => (
-              <li
-                key={event.id}
-                className="p-4 border rounded-lg shadow-sm bg-white"
-              >
-                <h3 className="font-semibold text-lg">{event.title}</h3>
-                <p className="text-grat-600">{event.description}</p>
-                <p className="text-sm text-gray-500">
-                  📍 {event.location} | 🗓{" "}
-                  {new Date(event.date).toLocaleDateString()}
-                </p>
-                <div className="mt-3 space-x-2">
-                  <button
-                    className="px-3 py-1 bg-yellow-500 text-white rounded hover:b-yellow-600"
-                    onClick={() => navigate(`/edit-event/${event.id}`)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                    onClick={() => handleDelete(event.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))}
+            {data.myEvents.map((event) => {
+              const attendingCount = (event.rsvps ?? []).filter(
+                (r) => r.status === "attending"
+              ).length;
+
+              return (
+                <li
+                  key={event.id}
+                  className="p-4 border rounded-lg shadow-sm bg-white"
+                >
+                  <h3 className="font-semibold text-lg">{event.title}</h3>
+                  <p className="text-gray-600">{event.description}</p>
+                  <p className="text-sm text-gray-500">
+                    📍 {event.location} | 🗓 {formatDateTime(event.date)} | 👥{" "}
+                    <button
+                      type="button"
+                      onClick={() => toggleAttendees(event.id)}
+                      className="underline hover:no-underline"
+                    >
+                      {attendingCount} going
+                    </button>
+                  </p>
+
+                  {openAttendees.has(event.id) && attendingCount > 0 && (
+                    <ul className="mt-2 text-sm text-gray-700 list-disc pl-6">
+                      {(event.rsvps ?? [])
+                        .filter((r) => r.status === "attending")
+                        .map((r) => (
+                          <li key={r.id}>{r.user?.name ?? "Unknown user"}</li>
+                        ))}
+                    </ul>
+                  )}
+
+                  <div className="mt-3 space-x-2">
+                    <button
+                      className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                      onClick={() => navigate(`/edit-event/${event.id}`)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                      onClick={() => handleDelete(event.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="text-gray-600">You haven't created any events yet.</p>
@@ -163,9 +203,9 @@ const Dashboard = () => {
               >
                 <h3 className="font-semibold text-lg">{rsvp.event.title}</h3>
                 <p className="text-gray-600">{rsvp.event.description}</p>
-                <p className="text-sm test-gray-500">
+                <p className="text-sm text-gray-500">
                   Status: {rsvp.status} | 📍 {rsvp.event.location} | 🗓{" "}
-                  {new Date(rsvp.event.date).toLocaleDateString()}
+                  {formatDateTime(rsvp.event.date)}
                 </p>
               </li>
             ))}
@@ -182,33 +222,57 @@ const Dashboard = () => {
         </h2>
         {data.otherEvents.length > 0 ? (
           <ul className="space-y-3">
-            {data.otherEvents.map((event) => (
-              <li
-                key={event.id}
-                className="p-4 border rounded-lg shadow-sm bg-white"
-              >
-                <h3 className="font-semibold text-lg">{event.title}</h3>
-                <p className="text-gray-600">{event.description}</p>
-                <p className="text-sm text-gray-500">
-                  Created by: {event.creator?.name} | 📍 {event.location} | 🗓{" "}
-                  {new Date(event.date).toLocaleDateString()}
-                </p>
-                <div className="mt-3 space-x-2">
-                  <button
-                    onClick={() => handleRsvp(event.id, "attending")}
-                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                  >
-                    Attend
-                  </button>
-                  <button
-                    onClick={() => handleRsvp(event.id, "declined")}
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    Decline
-                  </button>
-                </div>
-              </li>
-            ))}
+            {data.otherEvents.map((event) => {
+              const attendingCount = (event.rsvps ?? []).filter(
+                (r) => r.status === "attending"
+              ).length;
+
+              return (
+                <li
+                  key={event.id}
+                  className="p-4 border rounded-lg shadow-sm bg-white"
+                >
+                  <h3 className="font-semibold text-lg">{event.title}</h3>
+                  <p className="text-gray-600">{event.description}</p>
+                  <p className="text-sm text-gray-500">
+                    Created by: {event.creator?.name} | 📍 {event.location} | 🗓{" "}
+                    {formatDateTime(event.date)} | 👥{" "}
+                    <button
+                      type="button"
+                      onClick={() => toggleAttendees(event.id)}
+                      className="underline hover:no-underline"
+                    >
+                      {attendingCount} going
+                    </button>
+                  </p>
+
+                  {openAttendees.has(event.id) && attendingCount > 0 && (
+                    <ul className="mt-2 text-sm text-gray-700 list-disc pl-6">
+                      {(event.rsvps ?? [])
+                        .filter((r) => r.status === "attending")
+                        .map((r) => (
+                          <li key={r.id}>{r.user?.name ?? "Unknown user"}</li>
+                        ))}
+                    </ul>
+                  )}
+
+                  <div className="mt-3 space-x-2">
+                    <button
+                      onClick={() => handleRsvp(event.id, "attending")}
+                      className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      Attend
+                    </button>
+                    <button
+                      onClick={() => handleRsvp(event.id, "declined")}
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="text-gray-600">No events from other users yet.</p>
