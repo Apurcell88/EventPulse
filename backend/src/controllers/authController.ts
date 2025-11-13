@@ -91,7 +91,7 @@ export const signInUser = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // only HTTPS in production
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // use "lax" in dev
-      maxAge: 24 * 60 * 60 * 1000, // 1 hour
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
 
     // Optional: generate a JWT here for future protected routes
@@ -130,7 +130,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 export const signOutUser = (req: Request, res: Response) => {
   try {
     // Clear the cookie by setting it to an empty value and immediate expiration
-    res.cookie("token", {
+    res.cookie("token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",

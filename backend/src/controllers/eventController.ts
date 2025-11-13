@@ -53,7 +53,14 @@ export const getEventById = async (req: Request, res: Response) => {
 
     const event = await prisma.event.findUnique({
       where: { id: Number(id) },
-      include: { creator: true, rsvps: true },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+        rsvps: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
+      },
     });
 
     if (!event) return res.status(404).json({ error: "Event not found" });

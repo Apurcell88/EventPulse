@@ -136,7 +136,13 @@ const Dashboard = () => {
                   key={event.id}
                   className="p-4 border rounded-lg shadow-sm bg-white"
                 >
-                  <h3 className="font-semibold text-lg">{event.title}</h3>
+                  <h3
+                    className="font-semibold text-lg text-blue-600 hover:underline cursor-pointer"
+                    onClick={() => navigate(`/events/${event.id}`)}
+                  >
+                    {event.title}
+                  </h3>
+
                   <p className="text-gray-600">{event.description}</p>
                   <p className="text-sm text-gray-500">
                     📍 {event.location} | 🗓 {formatDateTime(event.date)} | 👥{" "}
@@ -218,7 +224,13 @@ const Dashboard = () => {
                   key={event.id}
                   className="p-4 border rounded-lg shadow-sm bg-white"
                 >
-                  <h3 className="font-semibold text-lg">{event.title}</h3>
+                  <h3
+                    className="font-semibold text-lg text-blue-600 hover:underline cursor-pointer"
+                    onClick={() => navigate(`/events/${event.id}`)}
+                  >
+                    {event.title}
+                  </h3>
+
                   <p className="text-gray-600">{event.description}</p>
                   <p className="text-sm text-gray-500">
                     Created by: {event.creator?.name} | 📍 {event.location} | 🗓{" "}

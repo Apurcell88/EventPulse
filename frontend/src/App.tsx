@@ -12,6 +12,7 @@ import CreateEvent from "./pages/CreateEvent";
 import EditEvent from "./pages/EditEvent";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthRedirect from "./components/AuthRedirect";
+import EventDetails from "./pages/EventDetails";
 
 export type User = { id: number; name: string; email: string } | null;
 
@@ -96,6 +97,14 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <EditEvent />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/:id"
+          element={
+            <ProtectedRoute user={user}>
+              <EventDetails />
             </ProtectedRoute>
           }
         />
