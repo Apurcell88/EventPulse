@@ -265,16 +265,33 @@ const Dashboard = () => {
           onClose={() => setShowModal(false)}
           title={`Attendees for ${selectedEvent.title}`}
         >
-          {(selectedEvent.rsvps ?? [])
-            .filter((r) => r.status === "attending")
-            .map((r) => (
-              <p key={r.id} className="py-1 border-b last:border-none">
-                {r.user?.name ?? "Unknown user"}
-              </p>
-            ))}
+          {selectedEvent.rsvps ?? [].length > 0 ? (
+            <ul className="divide-y divide-gray-200">
+              {selectedEvent.rsvps?.map((rsvp) => (
+                <li
+                  key={rsvp.id}
+                  className="py-2 flex justify-between items-center"
+                >
+                  <span>{rsvp.user?.name ?? "Unknown user"}</span>
 
-          {(selectedEvent.rsvps ?? []).filter((r) => r.status === "attending")
-            .length === 0 && <p className="text-gray-600">No attendees yet.</p>}
+                  {/* Status badge */}
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-semibold ${
+                      rsvp.status === "attending"
+                        ? "bg-green-100 text-green-700"
+                        : rsvp.status === "declined"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {rsvp.status.charAt(0).toUpperCase() + rsvp.status.slice(1)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-600">No RSVPs yet.</p>
+          )}
         </Modal>
       )}
     </div>
