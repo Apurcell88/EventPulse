@@ -26,9 +26,22 @@ export const rsvpEvent = async (req: Request, res: Response) => {
         status,
       },
       include: {
-        event: { include: { creator: true } }, // return event details
+        user: { select: { id: true, name: true, email: true } },
+        event: true,
       },
     });
+
+    // Socket.IO broadcast
+    const io = req.app.get("io");
+    console.log("Emitting rsvpUpdated");
+    if (io) {
+      io.emit("rsvpUpdated", {
+        eventId: Number(eventId),
+        userId: req.user.id,
+        status,
+        user: rsvp.user,
+      });
+    }
 
     res.json(rsvp);
   } catch (err) {

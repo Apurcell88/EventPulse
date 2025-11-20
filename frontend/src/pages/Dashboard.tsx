@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Navigate, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
+import { socket } from "../socket";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -36,11 +37,16 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const fetchDashboard = async () => {
+    console.log("FETCH DASHBOARD CALLED");
     try {
       const res = await fetch(`${API_URL}/api/users/dashboard`, {
         credentials: "include",
       });
+
+      console.log("STATUS:", res.status);
+
       const json = await res.json();
+      console.log("DASHBOARD RESPONSE:", json);
 
       if (!res.ok) {
         toast.error(json.error || "Failed to load dashboard");
@@ -56,8 +62,42 @@ const Dashboard = () => {
     }
   };
 
+  console.log("Dashboard socket instance:", socket);
+  console.log("Connected?", socket.connected);
+
+  const listenersAttached = useRef(false);
+
   useEffect(() => {
     fetchDashboard();
+
+    if (!socket) return;
+
+    if (!listenersAttached.current) {
+      console.log("Attaching socket listeners ONCE");
+      listenersAttached.current = true;
+
+      socket.on("connect", () => {
+        console.log("Socket connected:", socket.id);
+      });
+
+      socket.on("rsvpUpdated", (payload) => {
+        console.log("Received rsvpUpdated:", payload);
+        fetchDashboard();
+      });
+
+      socket.on("connect_error", (err) => {
+        console.log("Socket error:", err);
+      });
+
+      if (socket.connected) {
+        console.log("Socket already connected:", socket.id);
+        fetchDashboard();
+      }
+    }
+
+    return () => {
+      // NO cleanup — prevents StrictMode unmount/mount issues
+    };
   }, []);
 
   const handleRsvp = async (eventId: number, status: string) => {
@@ -277,7 +317,7 @@ const Dashboard = () => {
           onClose={() => setShowModal(false)}
           title={`Attendees for ${selectedEvent.title}`}
         >
-          {selectedEvent.rsvps ?? [].length > 0 ? (
+          {selectedEvent.rsvps?.length ? (
             <ul className="divide-y divide-gray-200">
               {selectedEvent.rsvps?.map((rsvp) => (
                 <li

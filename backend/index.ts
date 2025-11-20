@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import { createServer } from "http";
+import { Server } from "socket.io";
 // import userRoutes from "./src/routes/userRoutes";
 import authRoutes from "./src/routes/authRoutes";
 import userRoutes from "./src/routes/userRoutes";
@@ -38,4 +40,48 @@ app.use("/api/events", eventRoutes);
 // RSVP routes
 app.use("/api/rsvps", rsvpRoutes);
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Create HTTP wrapper
+const httpServer = createServer(app);
+
+// Create IO server
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173", // Vite dev server
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// Allow controllers to access io
+app.set("io", io);
+
+// Listen for connections
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  // User joins a specific event room
+  socket.on("join_event", (eventId) => {
+    socket.join(`event_${eventId}`);
+  });
+
+  // Incoming message from a user
+  socket.on("send_message", (data) => {
+    // Broadcast to everyone in that event
+    io.to(`event_${data.eventId}`).emit("receive_message", {
+      user: data.user,
+      text: data.text,
+      time: new Date().toISOString(),
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+// Start the server
+httpServer.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
