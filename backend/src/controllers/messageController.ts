@@ -37,7 +37,6 @@ export const createMessage = async (req: Request, res: Response) => {
       },
     });
 
-    // Emit to Socket.io event room
     const io = req.app.get("io");
     io.to(`event_${eventId}`).emit("receive_message", newMsg);
 

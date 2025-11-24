@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { socket } from "../socket";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -18,11 +19,27 @@ interface EventDetailsEvent {
   }[];
 }
 
+interface Message {
+  id: number;
+  text: string;
+  createdAt: string;
+  user: { id: number; name: string };
+}
+
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [event, setEvent] = useState<EventDetailsEvent | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [currentUser, setCurrentUser] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
 
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {
@@ -30,11 +47,26 @@ const EventDetails = () => {
       timeStyle: "short",
     });
 
+  // Load logged-in user
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (data?.user) setCurrentUser(data.user);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchEvent = async () => {
     try {
       const res = await fetch(`${API_URL}/api/events/${id}`, {
-        credentials: "include", // ok even if route is public
+        credentials: "include",
       });
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -51,9 +83,81 @@ const EventDetails = () => {
     }
   };
 
+  // Load messages from DB
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/messages/${id}`, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      setMessages(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Load event + user on mount
   useEffect(() => {
+    fetchCurrentUser();
     fetchEvent();
   }, [id]);
+
+  // Socket setup
+  useEffect(() => {
+    if (!id) return;
+
+    // Join event room
+    socket.emit("join_event", Number(id));
+
+    // Load existing messages
+    fetchMessages();
+
+    // Listen for incoming messages
+    socket.on("receive_message", (msg: Message) => {
+      setMessages((prev) => {
+        // Prevent duplicates by checking ID
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    });
+
+    return () => {
+      socket.off("receive_message");
+    };
+  }, [id]);
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !currentUser) return;
+
+    try {
+      // Persist message in DB first
+      const res = await fetch(`${API_URL}/api/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: Number(id),
+          text: newMessage,
+        }),
+      });
+
+      // const savedMsg: Message = await res.json();
+
+      if (!res.ok) {
+        toast.error("Failed to send message");
+        return;
+      }
+
+      // Broadcast via socket
+      // socket.emit("send_message", savedMsg);
+
+      setNewMessage("");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to send");
+    }
+  };
 
   const handleRsvp = async (status: string) => {
     if (!id) return;
@@ -74,8 +178,8 @@ const EventDetails = () => {
       }
 
       toast.success(`You marked this event as ${status}`);
-      fetchEvent(); // refresh attendee list + statuses
-    } catch (err: any) {
+      fetchEvent();
+    } catch (err) {
       console.error(err);
       toast.error("Something went wrong");
     }
@@ -162,7 +266,7 @@ const EventDetails = () => {
                   <span>{rsvp.user?.name ?? "Unknown user"}</span>
                   <span
                     className={`px-2 py-1 rounded text-xs font-semibold ${
-                      rsvp.status == "attending"
+                      rsvp.status === "attending"
                         ? "bg-green-100 text-green-700"
                         : rsvp.status === "declined"
                         ? "bg-red-100 text-red-700"
@@ -177,14 +281,44 @@ const EventDetails = () => {
           )}
         </div>
 
-        {/* Edit button for creator (optional, can also stay on Dashboard only) */}
-        <div className="mt-4">
-          <button
-            onClick={() => navigate(`/edit-event/${event.id}`)}
-            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-          >
-            Edit Event
-          </button>
+        {/* Chat Section */}
+        <div className="mt-8 bg-gray-50 p-4 rounded-xl shadow-inner">
+          <h2 className="text-xl font-bold mb-3">Event Chat</h2>
+
+          <div className="h-64 overflow-y-auto border rounded p-3 bg-white mb-3">
+            {messages.length > 0 ? (
+              messages.map((msg) => (
+                <div key={msg.id} className="mb-2">
+                  <p className="text-sm">
+                    <span className="font-semibold">{msg.user.name}</span>{" "}
+                    <span className="text-gray-400 text-xs">
+                      {new Date(msg.createdAt).toLocaleTimeString()}
+                    </span>
+                  </p>
+                  <p className="text-gray-800">{msg.text}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">
+                No messages yet. Start the conversation!
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              className="flex-1 border rounded px-3 py-2"
+              placeholder="Type a message..."
+            />
+            <button
+              onClick={sendMessage}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </div>

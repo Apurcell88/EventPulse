@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import prisma from "./src/prismaClient";
 import { createServer } from "http";
 import { Server } from "socket.io";
 // import userRoutes from "./src/routes/userRoutes";
@@ -70,15 +71,28 @@ io.on("connection", (socket) => {
     socket.join(`event_${eventId}`);
   });
 
-  // Incoming message from a user
-  socket.on("send_message", (data) => {
-    // Broadcast to everyone in that event
-    io.to(`event_${data.eventId}`).emit("receive_message", {
-      user: data.user,
-      text: data.text,
-      time: new Date().toISOString(),
-    });
-  });
+  // socket.on("send_message", async (data) => {
+  //   try {
+  //     const { eventId, text, userId } = data;
+
+  //     // Save to DB
+  //     const saved = await prisma.message.create({
+  //       data: {
+  //         text,
+  //         eventId: Number(eventId),
+  //         userId: Number(userId),
+  //       },
+  //       include: {
+  //         user: { select: { id: true, name: true } },
+  //       },
+  //     });
+
+  //     // Broadcast to room
+  //     io.to(`event_${eventId}`).emit("receive_message", saved);
+  //   } catch (err) {
+  //     console.error("Socket message save failed", err);
+  //   }
+  // });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
