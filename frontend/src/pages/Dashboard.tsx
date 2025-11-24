@@ -231,9 +231,15 @@ const Dashboard = () => {
             {data.myRsvps.map((rsvp) => (
               <li
                 key={rsvp.id}
-                className="p-4 border rounded-lg shadow-sm bg-white"
+                className="p-4 border rounded-lg shadow-sm bg-white cursor-pointer hover:bg-gray-50"
+                onClick={() => navigate(`/events/${rsvp.event.id}`)}
               >
-                <h3 className="font-semibold text-lg">{rsvp.event.title}</h3>
+                <h3
+                  className="font-semibold text-lg text-blue-600 hover:underline cursor-pointer"
+                  onClick={() => navigate(`/events/${rsvp.event.id}`)}
+                >
+                  {rsvp.event.title}
+                </h3>
                 <p className="text-gray-600">{rsvp.event.description}</p>
                 <p className="text-sm text-gray-500">
                   Status: {rsvp.status} | 📍 {rsvp.event.location} | 🗓{" "}
