@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { socket } from "../socket";
@@ -40,6 +40,10 @@ const EventDetails = () => {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  // let typingTimeout: NodeJS.Timeout | null = null;
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {
@@ -122,8 +126,22 @@ const EventDetails = () => {
       });
     });
 
+    // Typing indicators
+    socket.on("typing_start", ({ user }) => {
+      setTypingUsers((prev) => {
+        if (prev.includes(user)) return prev;
+        return [...prev, user];
+      });
+    });
+
+    socket.on("typing_stop", ({ user }) => {
+      setTypingUsers((prev) => prev.filter((u) => u !== user));
+    });
+
     return () => {
       socket.off("receive_message");
+      socket.off("typing_start");
+      socket.off("typing_stop");
     };
   }, [id]);
 
@@ -184,6 +202,37 @@ const EventDetails = () => {
       toast.error("Something went wrong");
     }
   };
+
+  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+
+    if (!currentUser) return;
+
+    // Notify others you're typing
+    socket.emit("typing_start", {
+      eventId: Number(id),
+      user: currentUser.name,
+    });
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("typing_stop", {
+        eventId: Number(id),
+        user: currentUser.name,
+      });
+    }, 2000);
+  };
+
+  // typingTimeoutRef cleanup
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (loading) {
     return <p className="p-6">Loading event...</p>;
@@ -306,9 +355,15 @@ const EventDetails = () => {
           </div>
 
           <div className="flex gap-2">
+            {typingUsers.length > 0 && (
+              <p className="text-sm text-gray-500 mb-1">
+                {typingUsers.join(", ")}{" "}
+                {typingUsers.length === 1 ? "is" : "are"} typing...
+              </p>
+            )}
             <input
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleTyping}
               className="flex-1 border rounded px-3 py-2"
               placeholder="Type a message..."
             />
