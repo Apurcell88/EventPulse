@@ -42,8 +42,11 @@ const EventDetails = () => {
   const [newMessage, setNewMessage] = useState("");
 
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  // let typingTimeout: NodeJS.Timeout | null = null;
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [readReceipts, setReadReceipts] = useState<{
+    [userId: number]: number;
+  }>({});
 
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {
@@ -126,6 +129,14 @@ const EventDetails = () => {
       });
     });
 
+    // Read receipts
+    socket.on("read_update", ({ userId, lastMessageId }) => {
+      setReadReceipts((prev) => ({
+        ...prev,
+        [userId]: lastMessageId,
+      }));
+    });
+
     // Typing indicators
     socket.on("typing_start", ({ user }) => {
       setTypingUsers((prev) => {
@@ -142,6 +153,7 @@ const EventDetails = () => {
       socket.off("receive_message");
       socket.off("typing_start");
       socket.off("typing_stop");
+      socket.off("read_update");
     };
   }, [id]);
 
@@ -233,6 +245,23 @@ const EventDetails = () => {
       }
     };
   }, []);
+
+  // This function triggers when user loads or scrolls to bottom
+  const reportRead = () => {
+    if (!messages.length || !currentUser) return;
+
+    const lastMessageId = messages[messages.length - 1].id;
+
+    socket.emit("message_read", {
+      eventId: Number(id),
+      userId: currentUser.id,
+      lastMessageId,
+    });
+  };
+
+  useEffect(() => {
+    reportRead();
+  }, [messages]);
 
   if (loading) {
     return <p className="p-6">Loading event...</p>;
@@ -352,6 +381,18 @@ const EventDetails = () => {
                 No messages yet. Start the conversation!
               </p>
             )}
+          </div>
+
+          <div className="text-xs text-gray-500 mt-2">
+            Seen by:{" "}
+            {Object.entries(readReceipts)
+              .map(([uid]) => {
+                const user = event?.rsvps?.find(
+                  (r) => r.user?.id === Number(uid)
+                )?.user;
+                return user?.name ?? "Unknown";
+              })
+              .join(", ")}
           </div>
 
           <div className="flex gap-2">

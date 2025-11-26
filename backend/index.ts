@@ -71,14 +71,24 @@ io.on("connection", (socket) => {
     socket.join(`event_${eventId}`);
   });
 
-  // NEW - typing started
+  // Typing started
   socket.on("typing_start", ({ eventId, user }) => {
     socket.to(`event_${eventId}`).emit("typing_start", { user });
   });
 
-  // NEW - typing stopped
+  // Typing stopped
   socket.on("typing_stop", ({ eventId, user }) => {
     socket.to(`event_${eventId}`).emit("typing_stop", { user });
+  });
+
+  // Forward the read receipt to everyone in that room
+  socket.on("message_read", ({ eventId, userId, lastMessageId }) => {
+    console.log(`User ${userId} read up to message ${lastMessageId}`);
+
+    io.to(`event_${eventId}`).emit("read_update", {
+      userId,
+      lastMessageId,
+    });
   });
 
   socket.on("disconnect", () => {

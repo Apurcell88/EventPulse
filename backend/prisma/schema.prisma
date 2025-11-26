@@ -19,6 +19,8 @@ model User {
   rsvps     RSVP[]
 
   messages Message[]
+
+  messageReads MessageRead[]
 }
 
 model Event {
@@ -58,4 +60,16 @@ model Message {
 
   event Event @relation(fields: [eventId], references: [id])
   eventId Int
+
+  messageReads MessageRead[]
+}
+
+model MessageRead {
+  id Int @id @default(autoincrement())
+  messageId Int
+  userId Int
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 }
