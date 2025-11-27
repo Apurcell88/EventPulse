@@ -5,12 +5,12 @@ import cookieParser from "cookie-parser";
 import prisma from "./src/prismaClient";
 import { createServer } from "http";
 import { Server } from "socket.io";
-// import userRoutes from "./src/routes/userRoutes";
 import authRoutes from "./src/routes/authRoutes";
 import userRoutes from "./src/routes/userRoutes";
 import eventRoutes from "./src/routes/eventRoutes";
 import rsvpRoutes from "./src/routes/rsvpRoutes";
 import messageRoutes from "./src/routes/messageRoutes";
+import fileRoutes from "./src/routes/fileRoutes";
 
 dotenv.config();
 
@@ -45,7 +45,8 @@ app.use("/api/rsvps", rsvpRoutes);
 // Message routes
 app.use("/api/messages", messageRoutes);
 
-// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// File routes
+app.use("/api/files", fileRoutes);
 
 // Create HTTP wrapper
 const httpServer = createServer(app);

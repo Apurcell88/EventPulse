@@ -21,6 +21,8 @@ model User {
   messages Message[]
 
   messageReads MessageRead[]
+
+  files File[]
 }
 
 model Event {
@@ -35,6 +37,8 @@ model Event {
   rsvps       RSVP[]   @relation("EventRSVPs")
 
   messages Message[]
+
+  files File[]
 }
 
 model RSVP {
@@ -65,11 +69,25 @@ model Message {
 }
 
 model MessageRead {
-  id Int @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   messageId Int
-  userId Int
+  userId    Int
   createdAt DateTime @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id])
+}
+
+model File {
+  id Int @id @default(autoincrement())
+  url String
+  publicId String // Cloudinary ID for deletion if needed
+  filename String
+  uploadedAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id])
+  eventId Int
+
+  user User? @relation(fields: [userId], references: [id])
+  userId Int?
 }

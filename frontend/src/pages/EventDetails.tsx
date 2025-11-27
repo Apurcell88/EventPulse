@@ -26,6 +26,20 @@ interface Message {
   user: { id: number; name: string };
 }
 
+interface FileData {
+  id: number;
+  url: string;
+  publicId: string;
+  filename: string;
+  uploadedAt: string;
+  eventId: number;
+  userId?: number | null;
+  user?: {
+    id: number;
+    name: string;
+  } | null;
+}
+
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -47,6 +61,9 @@ const EventDetails = () => {
   const [readReceipts, setReadReceipts] = useState<{
     [userId: number]: number;
   }>({});
+
+  const [files, setFiles] = useState<FileData[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {
@@ -110,6 +127,41 @@ const EventDetails = () => {
     fetchEvent();
   }, [id]);
 
+  const fetchFiles = async () => {
+    const res = await fetch(`${API_URL}/api/files/${id}`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    setFiles(data);
+  };
+
+  const uploadFile = async () => {
+    if (!selectedFile) return;
+
+    if (!id) {
+      toast.error("Missing event ID");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("eventId", id.toString());
+
+    const res = await fetch(`${API_URL}/api/files/${id}`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      toast.error("File upload failed");
+      return;
+    }
+
+    setSelectedFile(null);
+    fetchFiles();
+  };
+
   // Socket setup
   useEffect(() => {
     if (!id) return;
@@ -119,6 +171,9 @@ const EventDetails = () => {
 
     // Load existing messages
     fetchMessages();
+
+    // Load existing files
+    fetchFiles();
 
     // Listen for incoming messages
     socket.on("receive_message", (msg: Message) => {
@@ -147,6 +202,14 @@ const EventDetails = () => {
 
     socket.on("typing_stop", ({ user }) => {
       setTypingUsers((prev) => prev.filter((u) => u !== user));
+    });
+
+    socket.on("file_uploaded", (file: FileData) => {
+      setFiles((prev) => {
+        // prevent duplicates by checking ID
+        if (prev.some((f) => f.id === file.id)) return prev;
+        return [file, ...prev];
+      });
     });
 
     return () => {
@@ -415,6 +478,40 @@ const EventDetails = () => {
               Send
             </button>
           </div>
+        </div>
+
+        <div className="mt-8 bg-gray-50 p-4 rounded-xl shadow-inner">
+          <h2 className="text-xl font-bold mb-3">Event Files</h2>
+
+          <input
+            type="file"
+            className="mb-3"
+            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+          />
+
+          <button
+            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            onClick={uploadFile}
+          >
+            Upload File
+          </button>
+
+          <ul className="mt-4 space-y-2">
+            {files.map((file) => (
+              <li key={file.id} className="flex justify-between items-center">
+                <a
+                  href={file.url}
+                  target="_blank"
+                  className="text-blue-600 underline"
+                >
+                  {file.filename}
+                </a>
+                <span className="text-xs text-gray-500">
+                  uploaded by {file.user?.name}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
