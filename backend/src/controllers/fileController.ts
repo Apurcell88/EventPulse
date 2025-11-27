@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../prismaClient";
+import cloudinary from "../utils/cloudinary";
 
 export const uploadFile = async (req: Request, res: Response) => {
   try {
@@ -54,5 +55,45 @@ export const getFiles = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load files" });
+  }
+};
+
+export const deleteFile = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: "Not authenticated" });
+
+    const fileId = Number(req.params.fileId);
+
+    const file = await prisma.file.findUnique({
+      where: { id: fileId },
+    });
+
+    if (!file) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    // Only the user who uploaded the file can delete it
+    if (file.userId !== req.user.id) {
+      return res.status(403).json({ error: "Not authorized to delete" });
+    }
+
+    // Delete from Cloudinary
+    await cloudinary.uploader.destroy(file.publicId, {
+      resource_type: "raw",
+    });
+
+    // Delete from DB
+    await prisma.file.delete({
+      where: { id: fileId },
+    });
+
+    // Emit socket update to other users
+    const io = req.app.get("io");
+    io.to(`event_${file.eventId}`).emit("file_deleted", { fileId });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Delete failed" });
   }
 };

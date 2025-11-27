@@ -162,6 +162,23 @@ const EventDetails = () => {
     fetchFiles();
   };
 
+  const deleteFile = async (fileId: number) => {
+    if (!confirm("Delete this file?")) return;
+
+    const res = await fetch(`${API_URL}/api/files/${fileId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      toast.error("Delete failed");
+      return;
+    }
+
+    // Remove locally
+    setFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
   // Socket setup
   useEffect(() => {
     if (!id) return;
@@ -210,6 +227,10 @@ const EventDetails = () => {
         if (prev.some((f) => f.id === file.id)) return prev;
         return [file, ...prev];
       });
+    });
+
+    socket.on("file_deleted", ({ fileId }) => {
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
     });
 
     return () => {
@@ -483,32 +504,50 @@ const EventDetails = () => {
         <div className="mt-8 bg-gray-50 p-4 rounded-xl shadow-inner">
           <h2 className="text-xl font-bold mb-3">Event Files</h2>
 
-          <input
-            type="file"
-            className="mb-3"
-            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-          />
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              className="border p-2 rounded bg-white"
+            />
 
-          <button
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            onClick={uploadFile}
-          >
-            Upload File
-          </button>
+            <button
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              onClick={uploadFile}
+            >
+              Upload
+            </button>
+          </div>
 
-          <ul className="mt-4 space-y-2">
+          <ul className="space-y-3">
             {files.map((file) => (
-              <li key={file.id} className="flex justify-between items-center">
-                <a
-                  href={file.url}
-                  target="_blank"
-                  className="text-blue-600 underline"
-                >
-                  {file.filename}
-                </a>
-                <span className="text-xs text-gray-500">
-                  uploaded by {file.user?.name}
-                </span>
+              <li
+                key={file.id}
+                className="p-3 bg-white border rounded-lg shadow-sm flex justify-between items-center"
+              >
+                {/* Left side: filename + uploader */}
+                <div className="flex flex-col">
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    className="text-blue-600 font-medium hover:underline break-all"
+                  >
+                    {file.filename}
+                  </a>
+                  <span className="text-xs text-gray-500 mt-1">
+                    Uploaded by {file.user?.name}
+                  </span>
+                </div>
+
+                {/* Right side: Delete button */}
+                {currentUser?.id === file.userId && (
+                  <button
+                    className="text-red-500 hover:text-red-700 text-sm font-medium ml-4"
+                    onClick={() => deleteFile(file.id)}
+                  >
+                    Delete
+                  </button>
+                )}
               </li>
             ))}
           </ul>
