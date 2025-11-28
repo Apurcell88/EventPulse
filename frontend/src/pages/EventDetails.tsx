@@ -6,7 +6,8 @@ import { socket } from "../socket";
 const API_URL = import.meta.env.VITE_API_URL;
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
-// Very simple image check based on filename
+const isPDF = (filename: string) => /\.pdf$/i.test(filename);
+const isVideo = (filename: string) => /\.(mp4|webm|ogg)$/i.test(filename);
 const isImageFile = (filename: string) => {
   return /\.(png|jpe?g|gif|webp|avif)$/i.test(filename);
 };
@@ -83,6 +84,8 @@ const EventDetails = () => {
 
   const [files, setFiles] = useState<FileData[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [viewerFile, setViewerFile] = useState<FileData | null>(null);
 
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {
@@ -387,6 +390,64 @@ const EventDetails = () => {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      {viewerFile && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setViewerFile(null)}
+        >
+          <div
+            className="bg-white rounded-lg p-4 max-w-3xl w-full max-h-[90vh] overflow-auto shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xl font-bold">{viewerFile.filename}</h3>
+              <button
+                className="text-red-600 font-semibold"
+                onClick={() => setViewerFile(null)}
+              >
+                Close X
+              </button>
+            </div>
+
+            {isImageFile(viewerFile.filename) && (
+              <img
+                src={viewerFile.url}
+                className="max-w-full max-h-[70vh] object-contain mx-auto"
+              />
+            )}
+
+            {isPDF(viewerFile.filename) && (
+              <iframe src={viewerFile.url} className="w-full h-[70vh] border" />
+            )}
+
+            {isVideo(viewerFile.filename) && (
+              <video
+                src={viewerFile.url}
+                controls
+                className="w-full max-h-[70vh] rounded"
+              />
+            )}
+
+            {!isImageFile(viewerFile.filename) &&
+              !isPDF(viewerFile.filename) &&
+              !isVideo(viewerFile.filename) && (
+                <div className="text-center">
+                  <p className="mb-4 text-gray-700">
+                    This file type cannot be previewed.
+                  </p>
+                  <a
+                    href={viewerFile.url}
+                    download
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Download File
+                  </a>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
+
       <div className="mb-4">
         <Link to="/dashboard" className="text-blue-600 hover:underline text-sm">
           ← Back to Dashboard
@@ -543,15 +604,20 @@ const EventDetails = () => {
               const thumb = getThumbnailUrl(file);
               const isImage = !!thumb;
 
+              const handleOpenViewer = () => {
+                setViewerFile(file);
+              };
+
               return (
                 <li
                   key={file.id}
-                  className="p-3 bg-white border rounded-lg shadow-sm flex items-center justify-between gap-3"
+                  className="p-3 bg-white border rounded-lg shadow-sm flex items-center justify-between gap-3 cursor-pointer hover:bg-gray-50 transition"
+                  onClick={handleOpenViewer}
                 >
                   {/* Left: thumbnail + text */}
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Thumbnail / icon */}
-                    <div className="w-12 h-12 flex items-center justify-center rounded-md bg-gray-100 overflow-hidden">
+                    <div className="w-12 h-12 flex items-center justify-center rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
                       {isImage ? (
                         <img
                           src={thumb!}
@@ -565,15 +631,12 @@ const EventDetails = () => {
 
                     {/* Filename + uploader */}
                     <div className="flex flex-col min-w-0">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 font-medium hover:underline truncate"
+                      <span
+                        className="text-blue-600 font-medium truncate hover:underline"
                         title={file.filename}
                       >
                         {file.filename}
-                      </a>
+                      </span>
                       <span className="text-xs text-gray-500 mt-1">
                         Uploaded by {file.user?.name ?? "Unknown"}
                       </span>
@@ -584,7 +647,10 @@ const EventDetails = () => {
                   {currentUser?.id === file.userId && (
                     <button
                       className="text-red-500 hover:text-red-700 text-sm font-medium flex-shrink-0"
-                      onClick={() => deleteFile(file.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // prevent opening the viewer
+                        deleteFile(file.id);
+                      }}
                     >
                       Delete
                     </button>
