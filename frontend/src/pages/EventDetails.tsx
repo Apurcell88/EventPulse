@@ -164,7 +164,7 @@ const EventDetails = () => {
 
     const formData = new FormData();
     formData.append("file", selectedFile);
-    formData.append("eventId", id.toString());
+    // formData.append("eventId", id.toString());
 
     const res = await fetch(`${API_URL}/api/files/${id}`, {
       method: "POST",

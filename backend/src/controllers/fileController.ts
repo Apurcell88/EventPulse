@@ -15,13 +15,17 @@ export const uploadFile = async (req: Request, res: Response) => {
     const publicId = (req.file as any).filename; // This is Cloudinary's public_id
     const filename = req.file.originalname;
 
-    const eventId = Number(req.body.eventId);
+    const eventId = Number(req.params.eventId);
+
+    if (isNaN(eventId)) {
+      return res.status(400).json({ error: "Invalid eventId" });
+    }
 
     const newFile = await prisma.file.create({
       data: {
         url: fileUrl,
-        publicId: publicId,
-        filename: filename,
+        publicId,
+        filename,
         eventId,
         userId: req.user.id,
       },
