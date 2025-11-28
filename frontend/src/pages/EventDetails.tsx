@@ -4,6 +4,25 @@ import { toast } from "react-hot-toast";
 import { socket } from "../socket";
 
 const API_URL = import.meta.env.VITE_API_URL;
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+
+// Very simple image check based on filename
+const isImageFile = (filename: string) => {
+  return /\.(png|jpe?g|gif|webp|avif)$/i.test(filename);
+};
+
+// Build a small thumbnail URL using Cloudinary transforms
+const getThumbnailUrl = (file: FileData): string | null => {
+  if (!isImageFile(file.filename)) return null;
+
+  if (CLOUDINARY_CLOUD_NAME && file.publicId) {
+    // publicId looks like "eventpulse/files/xyz123"
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,w_72,h_72,q_auto,f_auto/${file.publicId}`;
+  }
+
+  // Fallback to original URL if we can't construct a transformed one
+  return file.url;
+};
 
 interface EventDetailsEvent {
   id: number;
@@ -519,37 +538,60 @@ const EventDetails = () => {
             </button>
           </div>
 
-          <ul className="space-y-3">
-            {files.map((file) => (
-              <li
-                key={file.id}
-                className="p-3 bg-white border rounded-lg shadow-sm flex justify-between items-center"
-              >
-                {/* Left side: filename + uploader */}
-                <div className="flex flex-col">
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    className="text-blue-600 font-medium hover:underline break-all"
-                  >
-                    {file.filename}
-                  </a>
-                  <span className="text-xs text-gray-500 mt-1">
-                    Uploaded by {file.user?.name}
-                  </span>
-                </div>
+          <ul className="mt-4 space-y-3">
+            {files.map((file) => {
+              const thumb = getThumbnailUrl(file);
+              const isImage = !!thumb;
 
-                {/* Right side: Delete button */}
-                {currentUser?.id === file.userId && (
-                  <button
-                    className="text-red-500 hover:text-red-700 text-sm font-medium ml-4"
-                    onClick={() => deleteFile(file.id)}
-                  >
-                    Delete
-                  </button>
-                )}
-              </li>
-            ))}
+              return (
+                <li
+                  key={file.id}
+                  className="p-3 bg-white border rounded-lg shadow-sm flex items-center justify-between gap-3"
+                >
+                  {/* Left: thumbnail + text */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Thumbnail / icon */}
+                    <div className="w-12 h-12 flex items-center justify-center rounded-md bg-gray-100 overflow-hidden">
+                      {isImage ? (
+                        <img
+                          src={thumb!}
+                          alt={file.filename}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-500">DOC</span>
+                      )}
+                    </div>
+
+                    {/* Filename + uploader */}
+                    <div className="flex flex-col min-w-0">
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 font-medium hover:underline truncate"
+                        title={file.filename}
+                      >
+                        {file.filename}
+                      </a>
+                      <span className="text-xs text-gray-500 mt-1">
+                        Uploaded by {file.user?.name ?? "Unknown"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right: delete button (only creator) */}
+                  {currentUser?.id === file.userId && (
+                    <button
+                      className="text-red-500 hover:text-red-700 text-sm font-medium flex-shrink-0"
+                      onClick={() => deleteFile(file.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
