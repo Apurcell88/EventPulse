@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../prismaClient";
 import cloudinary from "../utils/cloudinary";
+import archiver from "archiver";
 
 export const uploadFile = async (req: Request, res: Response) => {
   try {
@@ -99,5 +100,53 @@ export const deleteFile = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Delete failed" });
+  }
+};
+
+export const downloadEventZip = async (req: Request, res: Response) => {
+  try {
+    const eventId = Number(req.params.eventId);
+    if (isNaN(eventId)) {
+      return res.status(400).json({ error: "Invalid eventId" });
+    }
+
+    // Get files for this event
+    const files = await prisma.file.findMany({
+      where: { eventId },
+    });
+
+    if (!files.length) {
+      return res.status(404).json({ error: "No files found" });
+    }
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=event_${eventId}_files.zip`
+    );
+
+    // Create ZIP stream
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    // Download each file from Cloudinary and append to ZIP
+    for (const file of files) {
+      const response = await fetch(file.url);
+
+      if (!response.ok) {
+        console.error("Failed to fetch:", file.url);
+        continue;
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+
+      archive.append(buffer, { name: file.filename });
+    }
+
+    await archive.finalize();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to generate ZIP" });
   }
 };

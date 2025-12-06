@@ -599,6 +599,15 @@ const EventDetails = () => {
             </button>
           </div>
 
+          <button
+            onClick={() => {
+              window.location.href = `${API_URL}/api/files/zip/${id}`;
+            }}
+            className="mb-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Download All Files (ZIP)
+          </button>
+
           <ul className="mt-4 space-y-3">
             {files.map((file) => {
               const thumb = getThumbnailUrl(file);
