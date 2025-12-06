@@ -11,6 +11,7 @@ import eventRoutes from "./src/routes/eventRoutes";
 import rsvpRoutes from "./src/routes/rsvpRoutes";
 import messageRoutes from "./src/routes/messageRoutes";
 import fileRoutes from "./src/routes/fileRoutes";
+import notificationRoutes from "./src/routes/notificationRoutes";
 
 dotenv.config();
 
@@ -48,6 +49,9 @@ app.use("/api/messages", messageRoutes);
 // File routes
 app.use("/api/files", fileRoutes);
 
+// Notification routes
+app.use("/api/notifications", notificationRoutes);
+
 // Create HTTP wrapper
 const httpServer = createServer(app);
 
@@ -70,6 +74,13 @@ io.on("connection", (socket) => {
   // User joins a specific event room
   socket.on("join_event", (eventId) => {
     socket.join(`event_${eventId}`);
+  });
+
+  // User-level room for notifications
+  socket.on("join_user", (userId: number) => {
+    if (!userId) return;
+    console.log(`Socket ${socket.id} joined user_${userId}`);
+    socket.join(`user_${userId}`);
   });
 
   // Typing started

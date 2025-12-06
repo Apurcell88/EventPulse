@@ -25,11 +25,12 @@ export const createMessage = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ error: "Not authenticated" });
 
     const { eventId, text } = req.body;
+    const numericEventId = Number(eventId);
 
     const newMsg = await prisma.message.create({
       data: {
         text,
-        eventId: Number(eventId),
+        eventId: numericEventId,
         userId: req.user.id,
       },
       include: {
@@ -38,7 +39,52 @@ export const createMessage = async (req: Request, res: Response) => {
     });
 
     const io = req.app.get("io");
-    io.to(`event_${eventId}`).emit("receive_message", newMsg);
+
+    // Emit chat message to event room
+    io.to(`event_${numericEventId}`).emit("receive_message", newMsg);
+
+    // Create notifications for other participants
+    const event = await prisma.event.findUnique({
+      where: { id: numericEventId },
+      include: {
+        rsvps: { include: { user: true } },
+        creator: true,
+      },
+    });
+
+    if (event) {
+      const recipients = new Set<number>();
+
+      // Event creator
+      recipients.add(event.creatorId);
+
+      // All attendees (or you can include pending/declined too if you want)
+      event.rsvps.forEach((rsvp) => {
+        if (rsvp.userId) recipients.add(rsvp.userId);
+      });
+
+      // Don't notify the sender
+      recipients.delete(req.user.id);
+
+      const notificationText = `${req.user.name} sent a message in "${event.title}"`;
+
+      // Create + emit per recipient
+      for (const userId of recipients) {
+        const notification = await prisma.notification.create({
+          data: {
+            type: "message",
+            message: notificationText,
+            userId,
+            eventId: event.id,
+          },
+          include: {
+            event: { select: { id: true, title: true } },
+          },
+        });
+
+        io.to(`user_${userId}`).emit("notification", notification);
+      }
+    }
 
     res.json(newMsg);
   } catch (err) {

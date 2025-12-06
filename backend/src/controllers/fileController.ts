@@ -39,6 +39,44 @@ export const uploadFile = async (req: Request, res: Response) => {
     const io = req.app.get("io");
     io.to(`event_${eventId}`).emit("file_uploaded", newFile);
 
+    // Notifications for participants
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        rsvps: { include: { user: true } },
+        creator: true,
+      },
+    });
+
+    if (event) {
+      const recipients = new Set<number>();
+
+      recipients.add(event.creatorId);
+      event.rsvps.forEach((rsvp) => {
+        if (rsvp.userId) recipients.add(rsvp.userId);
+      });
+
+      recipients.delete(req.user.id);
+
+      const notificationText = `${req.user.name} uploaded "${filename}" to "${event.title}"`;
+
+      for (const userId of recipients) {
+        const notification = await prisma.notification.create({
+          data: {
+            type: "file",
+            message: notificationText,
+            userId,
+            eventId: event.id,
+          },
+          include: {
+            event: { select: { id: true, title: true } },
+          },
+        });
+
+        io.to(`user_${userId}`).emit("notification", notification);
+      }
+    }
+
     res.json(newFile);
   } catch (err) {
     console.error(err);

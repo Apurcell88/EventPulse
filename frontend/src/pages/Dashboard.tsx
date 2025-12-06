@@ -54,6 +54,11 @@ const Dashboard = () => {
       }
 
       setData(json);
+
+      // Join user-specific notification room
+      if (json.user?.id) {
+        socket.emit("join_user", json.user.id);
+      }
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong loading the dashboard");

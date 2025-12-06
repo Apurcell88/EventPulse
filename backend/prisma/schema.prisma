@@ -23,6 +23,8 @@ model User {
   messageReads MessageRead[]
 
   files File[]
+
+  notifications Notification[]
 }
 
 model Event {
@@ -39,6 +41,8 @@ model Event {
   messages Message[]
 
   files File[]
+
+  notifications Notification[]
 }
 
 model RSVP {
@@ -90,4 +94,18 @@ model File {
 
   user User? @relation(fields: [userId], references: [id])
   userId Int?
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String // e.g. "message" | "file"
+  message   String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  eventId Int?
+  event   Event? @relation(fields: [eventId], references: [id])
 }
