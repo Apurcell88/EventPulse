@@ -10,6 +10,7 @@ export const getMyNotifications = async (req: Request, res: Response) => {
       orderBy: { createdAt: "desc" },
       include: {
         event: { select: { id: true, title: true } },
+        actor: { select: { id: true, name: true } },
       },
       take: 50,
     });

@@ -24,7 +24,11 @@ model User {
 
   files File[]
 
-  notifications Notification[]
+  // Notifications that this user RECEIVES
+  notifications Notification[] @relation("NotificationRecipient")
+
+  // Notifications that this user TRIGGERS (optional)
+  sentNotifications Notification[] @relation("NotificationActor")
 }
 
 model Event {
@@ -103,8 +107,13 @@ model Notification {
   createdAt DateTime @default(now())
   read      Boolean  @default(false)
 
+  // Recipient (who sees this notification)
   userId Int
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation("NotificationRecipient", fields: [userId], references: [id])
+
+  // Actor (who triggered it, e.g. "Adam")
+  actorId Int?
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id])
 
   eventId Int?
   event   Event? @relation(fields: [eventId], references: [id])

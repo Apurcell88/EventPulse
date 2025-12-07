@@ -14,6 +14,10 @@ interface Notification {
     id: number;
     title: string;
   } | null;
+  actor?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 const NotificationBell = () => {
@@ -133,8 +137,8 @@ const NotificationBell = () => {
                     n.read ? "bg-white" : "bg-blue-50"
                   }`}
                 >
-                  <p className="font-medium">
-                    {n.message}
+                  <p className="font-medium text-purple-500">
+                    {n.actor?.name ?? "Someone"}: {n.message}
                     {n.event?.title && (
                       <span className="text-xs text-gray-500">
                         {" "}

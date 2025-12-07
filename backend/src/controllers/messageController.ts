@@ -66,7 +66,7 @@ export const createMessage = async (req: Request, res: Response) => {
       // Don't notify the sender
       recipients.delete(req.user.id);
 
-      const notificationText = `${req.user.name} sent a message in "${event.title}"`;
+      const notificationText = `sent a message in "${event.title}"`;
 
       // Create + emit per recipient
       for (const userId of recipients) {
@@ -76,9 +76,11 @@ export const createMessage = async (req: Request, res: Response) => {
             message: notificationText,
             userId,
             eventId: event.id,
+            actorId: req.user.id, // who triggered it
           },
           include: {
             event: { select: { id: true, title: true } },
+            actor: { select: { id: true, name: true } }, // include actor
           },
         });
 

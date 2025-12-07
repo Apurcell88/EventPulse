@@ -51,14 +51,18 @@ export const uploadFile = async (req: Request, res: Response) => {
     if (event) {
       const recipients = new Set<number>();
 
+      // event creator
       recipients.add(event.creatorId);
+
+      // all RSVPs (you can restrict to attending if you want)
       event.rsvps.forEach((rsvp) => {
         if (rsvp.userId) recipients.add(rsvp.userId);
       });
 
+      // Don't notify the uploader
       recipients.delete(req.user.id);
 
-      const notificationText = `${req.user.name} uploaded "${filename}" to "${event.title}"`;
+      const notificationText = `uploaded "${filename}" to "${event.title}"`;
 
       for (const userId of recipients) {
         const notification = await prisma.notification.create({
@@ -67,9 +71,11 @@ export const uploadFile = async (req: Request, res: Response) => {
             message: notificationText,
             userId,
             eventId: event.id,
+            actorId: req.user.id,
           },
           include: {
             event: { select: { id: true, title: true } },
+            actor: { select: { id: true, name: true } },
           },
         });
 
