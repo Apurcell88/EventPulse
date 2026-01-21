@@ -29,6 +29,11 @@ model User {
 
   // Notifications that this user TRIGGERS (optional)
   sentNotifications Notification[] @relation("NotificationActor")
+
+  // Notification prefs
+  notifyMessages Boolean @default(true)
+  notifyFiles    Boolean @default(true)
+  notifyRsvps    Boolean @default(true)
 }
 
 model Event {

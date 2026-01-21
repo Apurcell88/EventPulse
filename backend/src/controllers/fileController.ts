@@ -7,13 +7,11 @@ export const uploadFile = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: "Not authenticated" });
 
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
     // Cloudinary returns these via multer-storage-cloudinary
     const fileUrl = (req.file as any).path;
-    const publicId = (req.file as any).filename; // This is Cloudinary's public_id
+    const publicId = (req.file as any).filename; // Cloudinary public_id
     const filename = req.file.originalname;
 
     const eventId = Number(req.params.eventId);
@@ -35,8 +33,9 @@ export const uploadFile = async (req: Request, res: Response) => {
       },
     });
 
-    // Emit real-time update
     const io = req.app.get("io");
+
+    // Emit real-time update
     io.to(`event_${eventId}`).emit("file_uploaded", newFile);
 
     // Notifications for participants
@@ -51,35 +50,39 @@ export const uploadFile = async (req: Request, res: Response) => {
     if (event) {
       const recipients = new Set<number>();
 
-      // event creator
       recipients.add(event.creatorId);
-
-      // all RSVPs (you can restrict to attending if you want)
       event.rsvps.forEach((rsvp) => {
         if (rsvp.userId) recipients.add(rsvp.userId);
       });
 
-      // Don't notify the uploader
       recipients.delete(req.user.id);
 
-      const notificationText = `uploaded "${filename}" to "${event.title}"`;
+      const recipientIds = Array.from(recipients);
 
-      for (const userId of recipients) {
+      // Fetch notification prefs for recipients
+      const userWithPrefs = await prisma.user.findMany({
+        where: { id: { in: recipientIds } },
+        select: { id: true, notifyFiles: true },
+      });
+
+      const notificationText = `${req.user.name ?? "Someone"} uploaded "${filename}" to "${event.title}"`;
+
+      for (const user of userWithPrefs) {
+        if (!user.notifyFiles) continue;
+
         const notification = await prisma.notification.create({
           data: {
             type: "file",
             message: notificationText,
-            userId,
+            userId: user.id,
             eventId: event.id,
-            actorId: req.user.id,
           },
           include: {
             event: { select: { id: true, title: true } },
-            actor: { select: { id: true, name: true } },
           },
         });
 
-        io.to(`user_${userId}`).emit("notification", notification);
+        io.to(`user_${user.id}`).emit("notification", notification);
       }
     }
 

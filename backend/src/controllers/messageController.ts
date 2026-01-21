@@ -58,7 +58,7 @@ export const createMessage = async (req: Request, res: Response) => {
       // Event creator
       recipients.add(event.creatorId);
 
-      // All attendees (or you can include pending/declined too if you want)
+      // All attendees (can filter by status if I want)
       event.rsvps.forEach((rsvp) => {
         if (rsvp.userId) recipients.add(rsvp.userId);
       });
@@ -66,25 +66,33 @@ export const createMessage = async (req: Request, res: Response) => {
       // Don't notify the sender
       recipients.delete(req.user.id);
 
-      const notificationText = `sent a message in "${event.title}"`;
+      const recipientIds = Array.from(recipients);
 
-      // Create + emit per recipient
-      for (const userId of recipients) {
+      // Fetch notification prefs for recipients
+      const userWithPrefs = await prisma.user.findMany({
+        where: { id: { in: recipientIds } },
+        select: { id: true, notifyMessages: true },
+      });
+
+      const notificationText = `${req.user.name ?? "Someone"} sent a message in ${event.title}`;
+
+      for (const user of userWithPrefs) {
+        // Respect user setting
+        if (!user.notifyMessages) continue;
+
         const notification = await prisma.notification.create({
           data: {
             type: "message",
             message: notificationText,
-            userId,
+            userId: user.id,
             eventId: event.id,
-            actorId: req.user.id, // who triggered it
           },
           include: {
             event: { select: { id: true, title: true } },
-            actor: { select: { id: true, name: true } }, // include actor
           },
         });
 
-        io.to(`user_${userId}`).emit("notification", notification);
+        io.to(`user_${user.id}`).emit("notification", notification);
       }
     }
 
